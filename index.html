@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Confronto Fatture IVA</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #F5F3EE;
+    --surface: #FFFFFF;
+    --surface2: #EDEAE3;
+    --border: #D4CFC5;
+    --border-strong: #9E998F;
+    --text: #1A1916;
+    --text-muted: #6B6760;
+    --text-hint: #9E998F;
+    --accent: #1D4ED8;
+    --accent-light: #EFF6FF;
+    --danger: #DC2626;
+    --danger-light: #FEF2F2;
+    --success: #16A34A;
+    --success-light: #F0FDF4;
+    --warning: #D97706;
+    --warning-light: #FFFBEB;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+  }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  header {
+    background: var(--text);
+    color: var(--bg);
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  header .logo {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    opacity: 0.5;
+    border-right: 1px solid rgba(255,255,255,0.2);
+    padding-right: 16px;
+  }
+
+  header h1 {
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+
+  header .subtitle {
+    font-size: 12px;
+    opacity: 0.5;
+    margin-left: auto;
+    font-family: var(--mono);
+  }
+
+  .main {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 32px 24px;
+  }
+
+  .upload-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .upload-card {
+    background: var(--surface);
+    border: 1.5px dashed var(--border);
+    border-radius: 8px;
+    padding: 28px 24px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    position: relative;
+    text-align: center;
+  }
+
+  .upload-card:hover { border-color: var(--border-strong); background: var(--surface2); }
+  .upload-card.loaded { border-style: solid; border-color: var(--success); background: var(--success-light); cursor: default; }
+  .upload-card.loaded .upload-icon { color: var(--success); }
+
+  .upload-icon {
+    font-size: 32px;
+    margin-bottom: 12px;
+    display: block;
+    color: var(--text-hint);
+  }
+
+  .upload-label {
+    font-size: 12px;
+    font-family: var(--mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-hint);
+    margin-bottom: 6px;
+  }
+
+  .upload-title {
+    font-size: 15px;
+    font-weight: 500;
+    margin-bottom: 4px;
+  }
+
+  .upload-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .upload-status {
+    margin-top: 12px;
+    font-size: 12px;
+    font-family: var(--mono);
+    color: var(--success);
+    display: none;
+  }
+
+  .upload-card.loaded .upload-status { display: block; }
+  .upload-card.loaded .upload-hint { display: none; }
+
+  input[type=file] { display: none; }
+
+  .config-bar {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .config-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+  }
+
+  .config-group label {
+    color: var(--text-muted);
+    font-size: 12px;
+    font-family: var(--mono);
+    white-space: nowrap;
+  }
+
+  .config-group select, .config-group input {
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 5px 8px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg);
+    color: var(--text);
+    cursor: pointer;
+  }
+
+  .btn-compare {
+    margin-left: auto;
+    background: var(--text);
+    color: var(--bg);
+    border: none;
+    padding: 9px 20px;
+    border-radius: 6px;
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+
+  .btn-compare:hover { opacity: 0.8; }
+  .btn-compare:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+
+  .stat-label {
+    font-size: 10px;
+    font-family: var(--mono);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-hint);
+    margin-bottom: 6px;
+  }
+
+  .stat-value {
+    font-size: 26px;
+    font-weight: 600;
+    font-family: var(--mono);
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+
+  .stat-value.danger { color: var(--danger); }
+  .stat-value.success { color: var(--success); }
+  .stat-value.warning { color: var(--warning); }
+
+  .results-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .result-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .panel-header {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .panel-title {
+    font-size: 12px;
+    font-family: var(--mono);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .badge {
+    font-size: 11px;
+    font-family: var(--mono);
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-weight: 500;
+  }
+
+  .badge-danger { background: var(--danger-light); color: var(--danger); }
+  .badge-success { background: var(--success-light); color: var(--success); }
+  .badge-warning { background: var(--warning-light); color: var(--warning); }
+  .badge-neutral { background: var(--surface2); color: var(--text-muted); }
+
+  .panel-body { max-height: 420px; overflow-y: auto; }
+
+  .invoice-row {
+    display: grid;
+    grid-template-columns: 90px 1fr 100px 80px;
+    gap: 8px;
+    padding: 9px 16px;
+    border-bottom: 1px solid var(--surface2);
+    font-size: 12px;
+    align-items: center;
+    transition: background 0.1s;
+  }
+
+  .invoice-row:hover { background: var(--surface2); }
+  .invoice-row:last-child { border-bottom: none; }
+
+  .invoice-row.header {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-hint);
+    background: var(--bg);
+    padding: 6px 16px;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+
+  .invoice-row.missing-left { border-left: 3px solid var(--danger); }
+  .invoice-row.missing-right { border-left: 3px solid var(--warning); }
+
+  .num { font-family: var(--mono); }
+  .amount { font-family: var(--mono); text-align: right; }
+  .tipo { font-size: 10px; padding: 2px 6px; border-radius: 3px; font-family: var(--mono); text-transform: uppercase; }
+  .tipo-acquisto { background: #EDE9FE; color: #5B21B6; }
+  .tipo-vendita { background: #DCFCE7; color: #166534; }
+
+  .empty-state {
+    padding: 40px;
+    text-align: center;
+    color: var(--text-hint);
+    font-size: 13px;
+  }
+
+  .empty-state .icon { font-size: 28px; margin-bottom: 8px; }
+
+  .full-table-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+  }
+
+  .tab {
+    padding: 10px 20px;
+    font-size: 12px;
+    font-family: var(--mono);
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    color: var(--text-muted);
+    transition: color 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .tab.active {
+    color: var(--text);
+    border-bottom-color: var(--text);
+  }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  .table-scroll { overflow-x: auto; max-height: 500px; overflow-y: auto; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+
+  th {
+    background: var(--bg);
+    padding: 8px 12px;
+    text-align: left;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-hint);
+    position: sticky;
+    top: 0;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 7px 12px;
+    border-bottom: 1px solid var(--surface2);
+    vertical-align: middle;
+  }
+
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface2); }
+
+  td.mono { font-family: var(--mono); }
+  td.amount { font-family: var(--mono); text-align: right; }
+
+  .row-missing td { background: #FEF2F2 !important; }
+  .row-missing:hover td { background: #FEE2E2 !important; }
+
+  .export-bar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+    align-items: center;
+  }
+
+  .btn-export {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 7px 14px;
+    border-radius: 5px;
+    font-family: var(--mono);
+    font-size: 11px;
+    cursor: pointer;
+    transition: background 0.1s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .btn-export:hover { background: var(--surface2); }
+
+  .search-input {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background: var(--bg);
+    color: var(--text);
+    width: 200px;
+  }
+
+  .section-title {
+    font-size: 11px;
+    font-family: var(--mono);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-hint);
+    margin-bottom: 12px;
+  }
+
+  .alert {
+    padding: 12px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .alert-info { background: var(--accent-light); color: #1e3a5f; border-left: 3px solid var(--accent); }
+  .alert-warning { background: var(--warning-light); color: #78350f; border-left: 3px solid var(--warning); }
+
+  .mapping-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+  }
+
+  .mapping-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+
+  .mapping-col h4 {
+    font-size: 11px;
+    font-family: var(--mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-hint);
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .map-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+    font-size: 12px;
+  }
+
+  .map-row label {
+    color: var(--text-muted);
+    width: 100px;
+    flex-shrink: 0;
+    font-size: 11px;
+  }
+
+  .map-row select {
+    flex: 1;
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 4px 6px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  #results-section { display: none; }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-family: var(--mono);
+    padding: 2px 8px;
+    border-radius: 12px;
+    background: var(--surface2);
+    color: var(--text-muted);
+  }
+
+  footer {
+    text-align: center;
+    padding: 24px;
+    font-size: 11px;
+    color: var(--text-hint);
+    font-family: var(--mono);
+    border-top: 1px solid var(--border);
+    margin-top: 16px;
+  }
+
+  @media (max-width: 768px) {
+    .upload-grid, .results-grid, .stats-row { grid-template-columns: 1fr; }
+    .mapping-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="logo">Strumento Fiscale</span>
+  <h1>Confronto Fatture IVA</h1>
+  <span class="subtitle">Agenzia delle Entrate ↔ Registro IVA</span>
+</header>
+
+<div class="main">
+
+  <div class="upload-grid">
+    <div class="upload-card" id="card-ade" onclick="document.getElementById('file-ade').click()">
+      <input type="file" id="file-ade" accept=".csv,.txt" onchange="handleFile('ade', this)">
+      <span class="upload-icon">📋</span>
+      <div class="upload-label">File 1 — Obbligatorio</div>
+      <div class="upload-title">Agenzia delle Entrate</div>
+      <div class="upload-desc upload-hint">Carica il file .CSV o .TXT esportato dal portale AdE</div>
+      <div class="upload-status" id="status-ade"></div>
+    </div>
+
+    <div class="upload-card" id="card-reg" onclick="document.getElementById('file-reg').click()">
+      <input type="file" id="file-reg" accept=".xlsx,.xls,.csv" onchange="handleFile('reg', this)">
+      <span class="upload-icon">📊</span>
+      <div class="upload-label">File 2 — Obbligatorio</div>
+      <div class="upload-title">Registro IVA</div>
+      <div class="upload-desc upload-hint">Carica il file .XLSX o .CSV del tuo registro IVA</div>
+      <div class="upload-status" id="status-reg"></div>
+    </div>
+  </div>
+
+  <div class="mapping-section" id="mapping-section" style="display:none">
+    <div class="section-title" style="margin-bottom:14px">⚙ Configurazione colonne</div>
+    <div class="mapping-grid">
+      <div class="mapping-col">
+        <h4>Agenzia delle Entrate — colonne</h4>
+        <div class="map-row"><label>N° Fattura</label><select id="ade-col-numero"></select></div>
+        <div class="map-row"><label>Data</label><select id="ade-col-data"></select></div>
+        <div class="map-row"><label>Fornitore/Cliente</label><select id="ade-col-soggetto"></select></div>
+        <div class="map-row"><label>Imponibile</label><select id="ade-col-imponibile"></select></div>
+        <div class="map-row"><label>IVA</label><select id="ade-col-iva"></select></div>
+        <div class="map-row"><label>Tipo</label><select id="ade-col-tipo"><option value="">— automatico —</option></select></div>
+      </div>
+      <div class="mapping-col">
+        <h4>Registro IVA — colonne</h4>
+        <div class="map-row"><label>N° Fattura</label><select id="reg-col-numero"></select></div>
+        <div class="map-row"><label>Data</label><select id="reg-col-data"></select></div>
+        <div class="map-row"><label>Fornitore/Cliente</label><select id="reg-col-soggetto"></select></div>
+        <div class="map-row"><label>Imponibile</label><select id="reg-col-imponibile"></select></div>
+        <div class="map-row"><label>IVA</label><select id="reg-col-iva"></select></div>
+        <div class="map-row"><label>Tipo</label><select id="reg-col-tipo"><option value="">— automatico —</option></select></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="config-bar">
+    <div class="config-group">
+      <label>TIPO FATTURE</label>
+      <select id="filter-tipo">
+        <option value="entrambi">Acquisto + Vendita</option>
+        <option value="acquisto">Solo Acquisto</option>
+        <option value="vendita">Solo Vendita</option>
+      </select>
+    </div>
+    <div class="config-group">
+      <label>ANNO</label>
+      <input type="number" id="filter-anno" placeholder="Tutti" min="2000" max="2099" style="width:80px">
+    </div>
+    <div class="config-group">
+      <label>SOGLIA € DIFF.</label>
+      <input type="number" id="soglia-diff" value="0.01" step="0.01" min="0" style="width:70px">
+    </div>
+    <button class="btn-compare" id="btn-compare" disabled onclick="eseguiConfronto()">▶ Confronta</button>
+  </div>
+
+  <div id="results-section">
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Totale AdE</div>
+        <div class="stat-value" id="stat-ade">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Totale Registro</div>
+        <div class="stat-value" id="stat-reg">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Mancanti in Registro</div>
+        <div class="stat-value danger" id="stat-missing-reg">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Mancanti in AdE</div>
+        <div class="stat-value warning" id="stat-missing-ade">—</div>
+      </div>
+    </div>
+
+    <div class="results-grid" style="margin-bottom:20px">
+      <div class="result-panel">
+        <div class="panel-header">
+          <span class="panel-title">🔴 Presenti in AdE — Assenti nel Registro</span>
+          <span class="badge badge-danger" id="count-missing-reg">0</span>
+        </div>
+        <div class="panel-body" id="list-missing-reg">
+          <div class="empty-state"><div class="icon">✓</div>Nessuna fattura mancante</div>
+        </div>
+      </div>
+      <div class="result-panel">
+        <div class="panel-header">
+          <span class="panel-title">🟡 Presenti nel Registro — Assenti in AdE</span>
+          <span class="badge badge-warning" id="count-missing-ade">0</span>
+        </div>
+        <div class="panel-body" id="list-missing-ade">
+          <div class="empty-state"><div class="icon">✓</div>Nessuna fattura mancante</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="full-table-wrap">
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab('tutte')">Tutte le fatture <span class="chip" id="tab-count-tutte">0</span></div>
+        <div class="tab" onclick="switchTab('match')">✓ Corrispondenti <span class="chip" id="tab-count-match">0</span></div>
+        <div class="tab" onclick="switchTab('diff-importo')">⚠ Diff. importo <span class="chip" id="tab-count-diff">0</span></div>
+        <div class="tab" onclick="switchTab('mancanti-reg')">🔴 Mancanti Registro <span class="chip" id="tab-count-mreg">0</span></div>
+        <div class="tab" onclick="switchTab('mancanti-ade')">🟡 Mancanti AdE <span class="chip" id="tab-count-made">0</span></div>
+      </div>
+
+      <div style="padding:12px 16px; border-bottom:1px solid var(--border); display:flex; gap:10px; align-items:center">
+        <button class="btn-export" onclick="esportaCSV()">⬇ Esporta CSV</button>
+        <button class="btn-export" onclick="esportaExcel()">⬇ Esporta Excel</button>
+        <input class="search-input" type="text" id="search-input" placeholder="Cerca fattura, soggetto..." oninput="renderTabella()">
+      </div>
+
+      <div class="table-scroll">
+        <table id="main-table">
+          <thead>
+            <tr>
+              <th>Stato</th>
+              <th>N° Fattura</th>
+              <th>Data</th>
+              <th>Soggetto</th>
+              <th>Tipo</th>
+              <th style="text-align:right">Imp. AdE (€)</th>
+              <th style="text-align:right">Imp. Registro (€)</th>
+              <th style="text-align:right">IVA AdE (€)</th>
+              <th style="text-align:right">IVA Registro (€)</th>
+              <th style="text-align:right">Δ Importo</th>
+            </tr>
+          </thead>
+          <tbody id="main-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>Confronto Fatture IVA — Strumento locale, nessun dato viene inviato a server esterni</footer>
+
+<script>
+const state = {
+  ade: { raw: [], cols: [], rows: [] },
+  reg: { raw: [], cols: [], rows: [] },
+  risultati: [],
+  tabAttiva: 'tutte'
+};
+
+function parseMoney(v) {
+  if (v === null || v === undefined || v === '') return null;
+  if (typeof v === 'number') return v;
+  let s = String(v).replace(/\s/g,'').replace(/[€$£\u00a0]/g,'');
+  if (!s) return null;
+  const lastComma = s.lastIndexOf(',');
+  const lastDot = s.lastIndexOf('.');
+  if (lastComma !== -1 && lastDot !== -1) {
+    if (lastComma > lastDot) {
+      // formato italiano: 32.114,61 → rimuovo i punti, sostituisco virgola con punto
+      s = s.replace(/\./g,'').replace(',','.');
+    } else {
+      // formato anglosassone: 32,114.61 → rimuovo le virgole
+      s = s.replace(/,/g,'');
+    }
+  } else if (lastComma !== -1) {
+    // solo virgola: potrebbe essere decimale (1.234 no, 32,61 sì)
+    const afterComma = s.substring(lastComma + 1);
+    if (afterComma.length <= 2) {
+      s = s.replace(',', '.');
+    } else {
+      s = s.replace(/,/g, '');
+    }
+  } else if (lastDot !== -1) {
+    // solo punto: se ci sono più punti o la parte decimale ha 3 cifre → separatore migliaia
+    const dots = s.split('.').length - 1;
+    const afterDot = s.substring(lastDot + 1);
+    if (dots > 1 || afterDot.length === 3) {
+      s = s.replace(/\./g, '');
+    }
+  }
+  const n = parseFloat(s);
+  return isNaN(n) ? null : n;
+}
+
+function parseDate(v) {
+  if (!v) return null;
+  if (v instanceof Date) return v;
+  const s = String(v).trim();
+  const formats = [
+    /^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/,
+    /^(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})$/,
+  ];
+  for (const f of formats) {
+    const m = s.match(f);
+    if (m) {
+      const parts = m.slice(1).map(Number);
+      if (parts[0] > 31) return new Date(parts[0], parts[1]-1, parts[2]);
+      return new Date(parts[2], parts[1]-1, parts[0]);
+    }
+  }
+  const d = new Date(s);
+  return isNaN(d) ? null : d;
+}
+
+function detectTipo(row, cols) {
+  const allText = cols.map(c => String(row[c]||'').toLowerCase()).join(' ');
+  if (/acquisto|acq|purchase|purch|fornitore|supplier|ricevute/.test(allText)) return 'acquisto';
+  if (/vendita|vend|sale|cliente|client|emesse/.test(allText)) return 'vendita';
+  return 'N/D';
+}
+
+function normalizeNumero(v) {
+  if (!v) return '';
+  return String(v).trim().replace(/^'+|'+$/g, '').replace(/\s+/g,'').toUpperCase();
+}
+
+async function handleFile(source, input) {
+  const file = input.files[0];
+  if (!file) return;
+  const ext = file.name.split('.').pop().toLowerCase();
+  const reader = new FileReader();
+
+  reader.onload = function(e) {
+    let rows = [], cols = [];
+    try {
+      if (ext === 'xlsx' || ext === 'xls') {
+        const wb = XLSX.read(e.target.result, {type:'array', cellDates:true});
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const data = XLSX.utils.sheet_to_json(ws, {defval:'', raw:false});
+        if (!data.length) { alert('Il file è vuoto o non riconoscibile.'); return; }
+        cols = Object.keys(data[0]);
+        rows = data;
+      } else {
+        const text = e.target.result;
+        const sep = detectSeparator(text);
+        const lines = text.split(/\r?\n/).filter(l => l.trim());
+        if (!lines.length) { alert('File CSV vuoto.'); return; }
+        cols = lines[0].split(sep).map(c => c.replace(/^"|"$/g,'').trim());
+        rows = lines.slice(1).map(line => {
+          const vals = splitCSVLine(line, sep);
+          const obj = {};
+          cols.forEach((c, i) => obj[c] = (vals[i]||'').replace(/^"|"$/g,'').trim());
+          return obj;
+        }).filter(r => cols.some(c => r[c]));
+      }
+    } catch(err) {
+      alert('Errore lettura file: ' + err.message);
+      return;
+    }
+
+    state[source].raw = rows;
+    state[source].cols = cols;
+    state[source].rows = rows;
+
+    const card = document.getElementById('card-' + source);
+    card.classList.add('loaded');
+    document.getElementById('status-' + source).textContent = `✓ ${file.name} — ${rows.length} righe caricate`;
+
+    popolaSelect(source, cols, rows);
+    checkReady();
+  };
+
+  if (ext === 'xlsx' || ext === 'xls') reader.readAsArrayBuffer(file);
+  else reader.readAsText(file, 'UTF-8');
+}
+
+function detectSeparator(text) {
+  const first = text.split('\n')[0];
+  const counts = {';':0, ',':0, '\t':0, '|':0};
+  for (const c of first) if (counts[c] !== undefined) counts[c]++;
+  return Object.entries(counts).sort((a,b) => b[1]-a[1])[0][0];
+}
+
+function splitCSVLine(line, sep) {
+  const result = [];
+  let cur = '', inQuote = false;
+  for (let i = 0; i < line.length; i++) {
+    if (line[i] === '"') { inQuote = !inQuote; continue; }
+    if (line[i] === sep && !inQuote) { result.push(cur); cur = ''; continue; }
+    cur += line[i];
+  }
+  result.push(cur);
+  return result;
+}
+
+function guessCol(cols, keywords) {
+  const kw = keywords.map(k => k.toLowerCase());
+  const scored = cols.map(c => {
+    const cl = c.toLowerCase();
+    const score = kw.reduce((s, k) => s + (cl.includes(k) ? 1 : 0), 0);
+    return { c, score };
+  }).filter(x => x.score > 0).sort((a,b) => b.score - a.score);
+  return scored.length ? scored[0].c : '';
+}
+
+function popolaSelect(source, cols, rows) {
+  const mappings = {
+    numero: ['numero', 'num', 'fattura', 'n.', 'nr', 'invoice', 'doc', 'protocollo', 'prot'],
+    data: ['data', 'date', 'competenza', 'registrazione'],
+    soggetto: ['denominazione', 'ragione', 'fornitore', 'cliente', 'soggetto', 'partecipante', 'supplier', 'customer', 'name', 'contraente'],
+    imponibile: ['imponibile', 'impo', 'base', 'netto', 'taxable', 'amount', 'importo'],
+    iva: ['iva', 'imposta', 'tax', 'vat', 'aliquota'],
+    tipo: ['tipo', 'type', 'sez', 'sezione', 'registro']
+  };
+
+  for (const [field, kw] of Object.entries(mappings)) {
+    const sel = document.getElementById(`${source}-col-${field}`);
+    if (!sel) continue;
+    sel.innerHTML = '<option value="">— non presente —</option>';
+    cols.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c; opt.textContent = c;
+      sel.appendChild(opt);
+    });
+    const guessed = guessCol(cols, kw);
+    if (guessed) sel.value = guessed;
+  }
+
+  document.getElementById('mapping-section').style.display = 'block';
+  checkReady();
+}
+
+function checkReady() {
+  const ready = state.ade.rows.length && state.reg.rows.length;
+  document.getElementById('btn-compare').disabled = !ready;
+}
+
+function eseguiConfronto() {
+  const cfg = {
+    ade: {
+      numero: document.getElementById('ade-col-numero').value,
+      data: document.getElementById('ade-col-data').value,
+      soggetto: document.getElementById('ade-col-soggetto').value,
+      imponibile: document.getElementById('ade-col-imponibile').value,
+      iva: document.getElementById('ade-col-iva').value,
+      tipo: document.getElementById('ade-col-tipo').value,
+    },
+    reg: {
+      numero: document.getElementById('reg-col-numero').value,
+      data: document.getElementById('reg-col-data').value,
+      soggetto: document.getElementById('reg-col-soggetto').value,
+      imponibile: document.getElementById('reg-col-imponibile').value,
+      iva: document.getElementById('reg-col-iva').value,
+      tipo: document.getElementById('reg-col-tipo').value,
+    }
+  };
+
+  const filterTipo = document.getElementById('filter-tipo').value;
+  const filterAnno = parseInt(document.getElementById('filter-anno').value) || null;
+  const soglia = parseFloat(document.getElementById('soglia-diff').value) || 0.01;
+
+  function buildMap(source, cfg_src) {
+    return state[source].rows.map((row, idx) => {
+      const num = normalizeNumero(row[cfg_src.numero]);
+      const data = parseDate(row[cfg_src.data]);
+      const soggetto = String(row[cfg_src.soggetto] || '').trim();
+      const imponibile = parseMoney(row[cfg_src.imponibile]);
+      const iva = parseMoney(row[cfg_src.iva]);
+      let tipo = cfg_src.tipo ? String(row[cfg_src.tipo]||'').toLowerCase() : '';
+      if (!tipo || tipo === '— non presente —') tipo = detectTipo(row, state[source].cols);
+      if (/acquisto|acq|purchase|passive|purch|fornitore/.test(tipo)) tipo = 'acquisto';
+      else if (/vendita|vend|sale|attive|cliente|emesse/.test(tipo)) tipo = 'vendita';
+      else tipo = 'N/D';
+      return { num, data, soggetto, imponibile, iva, tipo, raw: row, idx, source };
+    }).filter(f => f.num);
+  }
+
+  let adeList = buildMap('ade', cfg.ade);
+  let regList = buildMap('reg', cfg.reg);
+
+  if (filterAnno) {
+    adeList = adeList.filter(f => !f.data || f.data.getFullYear() === filterAnno);
+    regList = regList.filter(f => !f.data || f.data.getFullYear() === filterAnno);
+  }
+  if (filterTipo !== 'entrambi') {
+    adeList = adeList.filter(f => f.tipo === filterTipo || f.tipo === 'N/D');
+    regList = regList.filter(f => f.tipo === filterTipo || f.tipo === 'N/D');
+  }
+
+  const regByNum = new Map();
+  regList.forEach(r => {
+    if (!regByNum.has(r.num)) regByNum.set(r.num, []);
+    regByNum.get(r.num).push(r);
+  });
+
+  const adeByNum = new Map();
+  adeList.forEach(r => {
+    if (!adeByNum.has(r.num)) adeByNum.set(r.num, []);
+    adeByNum.get(r.num).push(r);
+  });
+
+  const risultati = [];
+  const regUsati = new Set();
+
+  for (const adeItem of adeList) {
+    const matches = regByNum.get(adeItem.num);
+    if (!matches || matches.length === 0) {
+      risultati.push({ stato: 'mancante-reg', ade: adeItem, reg: null });
+    } else {
+      const match = matches.find(m => !regUsati.has(m.idx));
+      if (!match) {
+        risultati.push({ stato: 'mancante-reg', ade: adeItem, reg: null });
+      } else {
+        regUsati.add(match.idx);
+        const diffImp = (adeItem.imponibile !== null && match.imponibile !== null)
+          ? Math.abs(adeItem.imponibile - match.imponibile) : null;
+        const diffIva = (adeItem.iva !== null && match.iva !== null)
+          ? Math.abs(adeItem.iva - match.iva) : null;
+        const hasDiff = (diffImp !== null && diffImp > soglia) || (diffIva !== null && diffIva > soglia);
+        risultati.push({ stato: hasDiff ? 'diff-importo' : 'ok', ade: adeItem, reg: match, diffImp, diffIva });
+      }
+    }
+  }
+
+  for (const regItem of regList) {
+    if (!regUsati.has(regItem.idx)) {
+      risultati.push({ stato: 'mancante-ade', ade: null, reg: regItem });
+    }
+  }
+
+  state.risultati = risultati;
+  aggiornaUI(adeList, regList, risultati);
+}
+
+function fmt(v) {
+  if (v === null || v === undefined) return '—';
+  return Number(v).toLocaleString('it-IT', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+
+function fmtDate(d) {
+  if (!d || !(d instanceof Date) || isNaN(d)) return '—';
+  return d.toLocaleDateString('it-IT');
+}
+
+function aggiornaUI(adeList, regList, risultati) {
+  const mReg = risultati.filter(r => r.stato === 'mancante-reg');
+  const mAde = risultati.filter(r => r.stato === 'mancante-ade');
+
+  document.getElementById('stat-ade').textContent = adeList.length;
+  document.getElementById('stat-reg').textContent = regList.length;
+  document.getElementById('stat-missing-reg').textContent = mReg.length;
+  document.getElementById('stat-missing-ade').textContent = mAde.length;
+
+  renderMissingList('list-missing-reg', 'count-missing-reg', mReg, 'ade', 'missing-left');
+  renderMissingList('list-missing-ade', 'count-missing-ade', mAde, 'reg', 'missing-right');
+
+  document.getElementById('results-section').style.display = 'block';
+  state.tabAttiva = 'tutte';
+  updateTabCounts();
+  renderTabella();
+}
+
+function renderMissingList(containerId, countId, items, source, cls) {
+  const container = document.getElementById(containerId);
+  document.getElementById(countId).textContent = items.length;
+
+  if (!items.length) {
+    container.innerHTML = '<div class="empty-state"><div class="icon">✓</div>Nessuna fattura mancante</div>';
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="invoice-row header">
+      <span>N° Fattura</span><span>Soggetto</span><span>Imponibile</span><span>Tipo</span>
+    </div>
+  ` + items.map(r => {
+    const item = r[source];
+    return `<div class="invoice-row ${cls}">
+      <span class="num">${item.num}</span>
+      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${item.soggetto}">${item.soggetto||'—'}</span>
+      <span class="amount">${fmt(item.imponibile)}</span>
+      <span><span class="tipo ${item.tipo === 'acquisto' ? 'tipo-acquisto' : item.tipo === 'vendita' ? 'tipo-vendita' : ''}">${item.tipo}</span></span>
+    </div>`;
+  }).join('');
+}
+
+function updateTabCounts() {
+  const r = state.risultati;
+  document.getElementById('tab-count-tutte').textContent = r.length;
+  document.getElementById('tab-count-match').textContent = r.filter(x => x.stato === 'ok').length;
+  document.getElementById('tab-count-diff').textContent = r.filter(x => x.stato === 'diff-importo').length;
+  document.getElementById('tab-count-mreg').textContent = r.filter(x => x.stato === 'mancante-reg').length;
+  document.getElementById('tab-count-made').textContent = r.filter(x => x.stato === 'mancante-ade').length;
+}
+
+function switchTab(t) {
+  state.tabAttiva = t;
+  document.querySelectorAll('.tab').forEach((el, i) => {
+    el.classList.toggle('active', ['tutte','match','diff-importo','mancanti-reg','mancanti-ade'][i] === t);
+  });
+  renderTabella();
+}
+
+function renderTabella() {
+  const search = (document.getElementById('search-input').value||'').toLowerCase();
+  let data = state.risultati;
+
+  if (state.tabAttiva === 'match') data = data.filter(r => r.stato === 'ok');
+  else if (state.tabAttiva === 'diff-importo') data = data.filter(r => r.stato === 'diff-importo');
+  else if (state.tabAttiva === 'mancanti-reg') data = data.filter(r => r.stato === 'mancante-reg');
+  else if (state.tabAttiva === 'mancanti-ade') data = data.filter(r => r.stato === 'mancante-ade');
+
+  if (search) {
+    data = data.filter(r => {
+      const item = r.ade || r.reg;
+      return (item.num||'').toLowerCase().includes(search) ||
+             (item.soggetto||'').toLowerCase().includes(search);
+    });
+  }
+
+  const tbody = document.getElementById('main-tbody');
+  if (!data.length) {
+    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:32px;color:var(--text-hint);font-family:var(--mono)">Nessuna fattura trovata</td></tr>`;
+    return;
+  }
+
+  const statoLabel = {
+    'ok': '<span style="color:var(--success)">✓ OK</span>',
+    'diff-importo': '<span style="color:var(--warning)">⚠ Diff. importo</span>',
+    'mancante-reg': '<span style="color:var(--danger)">🔴 Mancante Registro</span>',
+    'mancante-ade': '<span style="color:var(--warning)">🟡 Mancante AdE</span>',
+  };
+
+  tbody.innerHTML = data.map(r => {
+    const a = r.ade, g = r.reg;
+    const item = a || g;
+    const isMissing = r.stato === 'mancante-reg' || r.stato === 'mancante-ade';
+    const tipoClass = item.tipo === 'acquisto' ? 'tipo-acquisto' : item.tipo === 'vendita' ? 'tipo-vendita' : '';
+    const diff = r.diffImp !== null ? r.diffImp : null;
+    const diffStyle = diff !== null && diff > 0 ? 'color:var(--danger);font-weight:500' : 'color:var(--text-hint)';
+    return `<tr class="${isMissing ? 'row-missing' : ''}">
+      <td style="white-space:nowrap;font-size:11px">${statoLabel[r.stato]}</td>
+      <td class="mono">${item.num}</td>
+      <td class="mono">${fmtDate(item.data)}</td>
+      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${item.soggetto||''}">${item.soggetto||'—'}</td>
+      <td><span class="tipo ${tipoClass}">${item.tipo}</span></td>
+      <td class="amount">${a ? fmt(a.imponibile) : '—'}</td>
+      <td class="amount">${g ? fmt(g.imponibile) : '—'}</td>
+      <td class="amount">${a ? fmt(a.iva) : '—'}</td>
+      <td class="amount">${g ? fmt(g.iva) : '—'}</td>
+      <td class="amount" style="${diffStyle}">${diff !== null ? fmt(diff) : '—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function esportaCSV() {
+  const data = state.risultati;
+  const header = ['Stato','N.Fattura','Data','Soggetto','Tipo','Imponibile_AdE','Imponibile_Registro','IVA_AdE','IVA_Registro','Delta_Importo'];
+  const rows = data.map(r => {
+    const item = r.ade || r.reg;
+    return [
+      r.stato, item.num, fmtDate(item.data), item.soggetto, item.tipo,
+      r.ade?.imponibile??'', r.reg?.imponibile??'',
+      r.ade?.iva??'', r.reg?.iva??'',
+      r.diffImp??''
+    ];
+  });
+  const csv = [header, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(';')).join('\n');
+  download('confronto_fatture.csv', 'text/csv', '\uFEFF' + csv);
+}
+
+function esportaExcel() {
+  const data = state.risultati;
+  const ws_data = [
+    ['Stato','N° Fattura','Data','Soggetto','Tipo','Imponibile AdE (€)','Imponibile Registro (€)','IVA AdE (€)','IVA Registro (€)','Δ Importo (€)'],
+    ...data.map(r => {
+      const item = r.ade || r.reg;
+      return [
+        r.stato, item.num, fmtDate(item.data), item.soggetto, item.tipo,
+        r.ade?.imponibile??null, r.reg?.imponibile??null,
+        r.ade?.iva??null, r.reg?.iva??null,
+        r.diffImp??null
+      ];
+    })
+  ];
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(ws_data);
+  ws['!cols'] = [12,14,10,30,10,16,16,12,12,12].map(w => ({wch:w}));
+  XLSX.utils.book_append_sheet(wb, ws, 'Confronto Fatture');
+  XLSX.writeFile(wb, 'confronto_fatture_iva.xlsx');
+}
+
+function download(name, type, content) {
+  const blob = new Blob([content], {type});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+}
+</script>
+</body>
+</html>
