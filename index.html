@@ -334,6 +334,40 @@
   .merger-msg.error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; display: block; }
   .merger-msg.info { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; display: block; }
 
+  .merger-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    background: var(--accent-light);
+    border: 1px solid #bfdbfe;
+    border-left: 3px solid var(--accent);
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin-bottom: 20px;
+    font-size: 13px;
+    line-height: 1.55;
+    color: #1e3a8a;
+  }
+  .merger-note .merger-note-icon { font-size: 18px; line-height: 1.4; flex-shrink: 0; }
+  .merger-note strong { font-weight: 600; }
+
+  .cfr-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    background: var(--accent-light);
+    border: 1px solid #bfdbfe;
+    border-left: 3px solid var(--accent);
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin-bottom: 24px;
+    font-size: 13px;
+    line-height: 1.55;
+    color: #1e3a8a;
+  }
+  .cfr-note .cfr-note-icon { font-size: 18px; line-height: 1.4; flex-shrink: 0; }
+  .cfr-note strong { font-weight: 600; }
+
 
   /* ═══════════════════════════════════════
      PANNELLO 2 — CONFRONTO FATTURE
@@ -532,11 +566,11 @@
     <h1>Strumenti IVA</h1>
   </div>
   <nav class="app-nav">
-    <div class="nav-tab active" onclick="switchPanel('merger')" id="nav-merger">
-      <span class="tab-icon">📊</span> IVA Merger
-    </div>
-    <div class="nav-tab" onclick="switchPanel('confronto')" id="nav-confronto">
+    <div class="nav-tab active" onclick="switchPanel('confronto')" id="nav-confronto">
       <span class="tab-icon">🔍</span> Confronto Fatture
+    </div>
+    <div class="nav-tab" onclick="switchPanel('merger')" id="nav-merger">
+      <span class="tab-icon">📊</span> IVA Merger
     </div>
   </nav>
   <span class="app-subtitle">Agenzia delle Entrate ↔ Registro IVA</span>
@@ -545,10 +579,15 @@
 <!-- ════════════════════════════════════════
      PANNELLO 1 — IVA MERGER
 ════════════════════════════════════════ -->
-<div class="app-panel active" id="panel-merger">
+<div class="app-panel" id="panel-merger">
 <div class="merger-container">
 
   <div id="merger-msg" class="merger-msg"></div>
+
+  <div class="merger-note">
+    <span class="merger-note-icon">ℹ️</span>
+    <span>Questa sezione serve ad <strong>accorpare le righe del brogliaccio IVA in un'unica riga per fattura</strong>: il file esportato riporta spesso più righe per lo stesso documento (es. aliquote o conti diversi), che qui vengono sommate e raggruppate per <strong>Numero documento</strong>, ottenendo un'unica riga con imponibile, IVA e totale consolidati.</span>
+  </div>
 
   <div class="merger-upload-grid">
     <div class="merger-upload-card" id="merger-card-acquisti"
@@ -627,8 +666,13 @@
 <!-- ════════════════════════════════════════
      PANNELLO 2 — CONFRONTO FATTURE
 ════════════════════════════════════════ -->
-<div class="app-panel" id="panel-confronto">
+<div class="app-panel active" id="panel-confronto">
 <div class="cfr-main">
+
+  <div class="cfr-note">
+    <span class="cfr-note-icon">ℹ️</span>
+    <span>Questa sezione serve a <strong>confrontare le fatture presenti in Agenzia delle Entrate</strong> (esportate dal portale AdE) <strong>con le fatture registrate nel software gestionale</strong>, per individuare differenze di importo, fatture mancanti su un lato o sull'altro e verificare la quadratura tra i due archivi.</span>
+  </div>
 
   <div class="cfr-upload-grid">
     <div class="cfr-upload-card" id="cfr-card-ade" onclick="document.getElementById('cfr-file-ade').click()">
